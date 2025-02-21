@@ -75,12 +75,12 @@ pub(crate) fn make_function_wrappers(
         if is_mut {
             // eg. Person::name(&mut self)
             quote! { extendr_api::unwrap_or_throw_error(
-                <&mut #self_ty>::try_from(&mut _self_robj)
+                <&mut #self_ty>::try_from_r(&mut _self_robj)
             ).#rust_name }
         } else {
             // eg. Person::name(&self)
             quote! { extendr_api::unwrap_or_throw_error(
-                <&#self_ty>::try_from(&_self_robj)
+                <&#self_ty>::try_from_r(&_self_robj)
             ).#rust_name }
         }
     } else if let Some(ref self_ty) = &self_ty {
@@ -204,7 +204,7 @@ pub(crate) fn make_function_wrappers(
             Err(Error::ExpectedExternalPtrReference)
         )
     } else {
-        quote!(Ok(extendr_api::Robj::from(#call_name(#actual_args))))
+        quote!(Ok(extendr_api::Robj::from_rust(#call_name(#actual_args))))
     };
 
     // TODO: the unsafe in here is unnecessary
@@ -488,7 +488,7 @@ fn translate_actual(input: &FnArg) -> Option<Expr> {
             if let syn::Pat::Ident(ref ident) = pat {
                 let varname = format_ident!("_{}_robj", ident.ident);
                 Some(parse_quote! {
-                    #varname.try_into()?
+                    #varname.try_into_rust()?
                 })
             } else {
                 None
