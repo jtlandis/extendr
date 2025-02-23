@@ -14,6 +14,8 @@ proc-macro = true
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 quote = "1.0"
 proc-macro2 = { version = "1.0" }
+compiler_checks = { workspace = true }
+impls = "1.0.3"
 
 [dev-dependencies]
 extendr-api = { path = "../extendr-api" }

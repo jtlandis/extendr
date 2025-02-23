@@ -1,0 +1,17 @@
+[package]
+name = "compiler_checks"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
+impls = "1.0.3"
+static_assertions = "1.1.0"
+
+[lib]
+proc-macro = true
