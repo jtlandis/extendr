@@ -4,15 +4,15 @@ resolver = "2"
 members = ["extendr-api", "extendr-engine", "extendr-macros", "xtask"]
 
 [workspace.package]
-version = "0.7.1"
+version = "0.7.2"
 authors = [
-    "andy-thomason <andy@andythomason.com>",
-    "Thomas Down",
-    "Mossa Merhi Reimert <mossa@sund.ku.dk>",
-    "Claus O. Wilke <wilke@austin.utexas.edu>",
-    "Hiroaki Yutani",
-    "Ilia A. Kosenkov <ilia.kosenkov@outlook.com>",
-    "Michael Milton <michael.r.milton@gmail.com>",
+  "andy-thomason <andy@andythomason.com>",
+  "Thomas Down",
+  "Mossa Merhi Reimert <mossa@sund.ku.dk>",
+  "Claus O. Wilke <wilke@austin.utexas.edu>",
+  "Hiroaki Yutani",
+  "Ilia A. Kosenkov <ilia.kosenkov@outlook.com>",
+  "Michael Milton <michael.r.milton@gmail.com>",
 ]
 edition = "2021"
 license = "MIT"
@@ -21,6 +21,7 @@ repository = "https://github.com/extendr/extendr"
 [workspace.dependencies]
 # When updating extendr's version, this version also needs to be updated
 extendr-macros = { path = "./extendr-macros", version = "0.7.1" }
+compiler_checks = { path = "./compiler_checks", version = "0.7.1" }
 
 # When uncommenting this, do not forget to uncomment the same line in
 # ./tests/extendrtests/src/rust/Cargo.toml, and "Run R integration tests using
