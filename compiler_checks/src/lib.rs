@@ -1,5 +1,6 @@
 extern crate impls;
 
+use const_format::formatcp;
 use impls::impls;
 use proc_macro::TokenStream;
 use quote::quote;
@@ -53,6 +54,55 @@ impl Parse for TypeTraitInput {
             trait_bound: input.parse()?,
         })
     }
+}
+
+macro_rules! assert_type_from_type {
+    ($x:ty, $y:ty) => {
+        const fn check() -> () {
+    const DOES_IMPL: bool = impls::impls!($x: From<$y>);
+
+            if !DOES_IMPL {
+                const MESSAGE: &str = formatcp!(
+                    "`{}` does not implement `From<{}>`.\n Consider adding #[extendr] to `{}`",
+                    stringify!($x),
+                    stringify!($y),
+                    stringify!($y)
+                );
+                panic!("{}", MESSAGE);
+            }
+        };
+        const _: () = check();
+    };
+}
+
+macro_rules! assert_type_tryfrom_type {
+    ($x:ty, $y:ty) => {
+        const fn check() -> () {
+    const DOES_IMPL: bool = impls::impls!($x: TryFrom<$y>);
+
+            if !DOES_IMPL {
+                const MESSAGE: &str = formatcp!(
+                    "`{}` does not implement `TryFrom<{}>`.\n Consider adding #[extendr] to `{}`",
+                    stringify!($x),
+                    stringify!($y),
+                    stringify!($y)
+                );
+                panic!("{}", MESSAGE);
+            }
+        };
+        const _: () = check();
+    };
+}
+
+fn test_this() {
+    struct Foo;
+    struct Bar;
+    impl From<Bar> for Foo {
+        fn from(_value: Bar) -> Self {
+            Self
+        }
+    }
+    assert_type_from_type!(Foo, Bar);
 }
 
 // #[proc_macro]
@@ -159,11 +209,11 @@ impl Parse for TypeTraitInput {
 // }
 //
 
-fn test_this() {
-    struct Foo;
-    check_trait_impl!(String, Copy);
-    assert_impl_all!(String: Copy);
-}
+// fn test_this2() {
+//     struct Foo;
+//     check_trait_impl!(String, Copy);
+//     assert_impl_all!(String: Copy);
+// }
 
 // mod test {
 //     use impls::impls;
