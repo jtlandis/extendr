@@ -170,6 +170,9 @@ where
 /// `ToVectorValue` is a trait that allows many different types
 /// to be converted to vectors. It is used as a type parameter
 /// to `collect_robj()`.
+// #[diagnostic::on_unimplemented(
+//     note = "if required by `extendr_api::Robj: From<{Self}>, consider annotating `{Self}` with `#[extendr]`"
+// )]
 pub trait ToVectorValue {
     fn sexptype() -> SEXPTYPE {
         SEXPTYPE::NILSXP
@@ -611,6 +614,7 @@ pub trait RobjItertools: Iterator {
 impl<T> RobjItertools for T where T: Iterator {}
 
 // Scalars which are ToVectorValue
+#[do_not_recommend]
 impl<T> From<T> for Robj
 where
     T: ToVectorValue,

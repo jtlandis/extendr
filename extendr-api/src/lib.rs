@@ -342,7 +342,7 @@ pub use std::convert::{TryFrom, TryInto};
 pub use std::ops::Deref;
 pub use std::ops::DerefMut;
 
-pub use robj::Robj;
+pub use robj::{FromRust, Robj};
 
 //////////////////////////////////////////////////
 // Note these pub use statements are deprecated

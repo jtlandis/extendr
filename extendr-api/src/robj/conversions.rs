@@ -1,6 +1,15 @@
 use super::{Error, Result, Robj};
 
-pub trait FromRust<T>
+#[diagnostic::on_unimplemented(
+    message = "`Robj` must implement `From<{Self}>`",
+    label = "invalid conversion",
+    note = "consider annotating `{Self}` with `#[extendr]`"
+)]
+pub trait FromRust<T> {
+    fn from_rust(from: T) -> Robj;
+}
+
+impl<T> FromRust<T> for Robj
 where
     Robj: From<T>,
 {
@@ -8,8 +17,6 @@ where
         Robj::from(from)
     }
 }
-
-impl<T> FromRust<T> for Robj where Robj: From<T> {}
 
 /// TryFrom<Robj> for T
 pub trait TryFromR<R>

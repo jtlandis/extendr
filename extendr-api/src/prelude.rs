@@ -49,7 +49,7 @@ pub use super::wrapper::s4::S4;
 pub use super::wrapper::{Conversions, MatrixConversions};
 
 pub use super::robj::{
-    AsStrIter, Attributes, Eval, GetSexp, IntoRobj, Length, Operators, Rinternals, Robj,
+    AsStrIter, Attributes, Eval, FromRust, GetSexp, IntoRobj, Length, Operators, Rinternals, Robj,
     RobjItertools, Slices, Types,
 };
 

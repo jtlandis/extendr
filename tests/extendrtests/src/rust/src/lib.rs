@@ -364,3 +364,16 @@ extendr_module! {
     use matrix;
     use to_unique_character;
 }
+
+struct FooTest;
+
+#[extendr]
+impl FooTest {
+    pub fn new() -> FooTest {
+        FooTest
+    }
+
+    pub fn take_it(_val: FooTest) -> usize {
+        0
+    }
+}
