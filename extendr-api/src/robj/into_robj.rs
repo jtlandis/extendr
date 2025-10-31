@@ -237,6 +237,27 @@ pub trait ToVectorValue {
     }
 }
 
+/// `NonRobj` is a marker trait that labels the struct as not
+/// being an R object. This trait, along with `ToVectorValue`
+/// provides a default implementation for `From<T> for Robj`
+/// for any type T.
+/// structs that do NOT implement this trait but do implement
+/// `ToVectorValue` must manually implement `From<T> for Robj`
+pub trait NonRobj {}
+
+impl<T> NonRobj for Option<T> where T: NonRobj {}
+impl<T> NonRobj for &T where T: NonRobj {}
+
+macro_rules! impl_non_robj {
+    ($($t:ty),*) => {
+        $(
+            impl NonRobj for $t {}
+        )*
+    };
+}
+
+impl_non_robj!(Rint, Rboolean);
+
 macro_rules! impl_real_tvv {
     ($t: ty) => {
         impl ToVectorValue for $t {
@@ -277,6 +298,7 @@ macro_rules! impl_real_tvv {
 
 impl_real_tvv!(f64);
 impl_real_tvv!(f32);
+impl_non_robj!(f64, f32);
 
 // Since these types might exceeds the max or min of R's 32bit integer, we need
 // to return as REALSXP
@@ -284,6 +306,7 @@ impl_real_tvv!(i64);
 impl_real_tvv!(u32);
 impl_real_tvv!(u64);
 impl_real_tvv!(usize);
+impl_non_robj!(i64, u32, u64, usize);
 
 macro_rules! impl_complex_tvv {
     ($t: ty) => {
@@ -312,6 +335,7 @@ macro_rules! impl_complex_tvv {
 impl_complex_tvv!(c64);
 impl_complex_tvv!(Rcplx);
 impl_complex_tvv!((f64, f64));
+impl_non_robj!(c64, Rcplx, (f64, f64));
 
 macro_rules! impl_integer_tvv {
     ($t: ty) => {
@@ -355,6 +379,7 @@ impl_integer_tvv!(i8);
 impl_integer_tvv!(i16);
 impl_integer_tvv!(i32);
 impl_integer_tvv!(u16);
+impl_non_robj!(i8, i16, i32, u16);
 
 impl ToVectorValue for u8 {
     fn sexptype() -> SEXPTYPE {
@@ -375,6 +400,8 @@ impl ToVectorValue for &u8 {
         **self
     }
 }
+
+impl NonRobj for u8 {}
 
 macro_rules! impl_str_tvv {
     ($t: ty) => {
@@ -425,6 +452,52 @@ macro_rules! impl_str_tvv {
 
 impl_str_tvv! {&str}
 impl_str_tvv! {String}
+impl_non_robj!(&str, String);
+
+// Taken from Josiah's impl
+// Manual implementations for Rstr to work with make_conversions!
+impl ToVectorValue for Rstr {
+    fn sexptype() -> SEXPTYPE {
+        SEXPTYPE::STRSXP
+    }
+
+    fn to_sexp(&self) -> SEXP
+    where
+        Self: Sized,
+    {
+        unsafe { self.get() }
+    }
+}
+
+impl ToVectorValue for &Rstr {
+    fn sexptype() -> SEXPTYPE {
+        SEXPTYPE::STRSXP
+    }
+
+    fn to_sexp(&self) -> SEXP
+    where
+        Self: Sized,
+    {
+        unsafe { self.get() }
+    }
+}
+
+impl ToVectorValue for Option<Rstr> {
+    fn sexptype() -> SEXPTYPE {
+        SEXPTYPE::STRSXP
+    }
+
+    fn to_sexp(&self) -> SEXP
+    where
+        Self: Sized,
+    {
+        if let Some(s) = self {
+            unsafe { s.get() }
+        } else {
+            unsafe { R_NaString }
+        }
+    }
+}
 
 impl ToVectorValue for Rstr {
     fn sexptype() -> SEXPTYPE {
@@ -589,6 +662,8 @@ impl ToVectorValue for Option<bool> {
     }
 }
 
+impl_non_robj!(bool, Rbool);
+
 // Not thread safe.
 fn fixed_size_collect<I>(iter: I, len: usize) -> Robj
 where
@@ -726,7 +801,7 @@ impl<T> RobjItertools for T where T: Iterator {}
 // Scalars which are ToVectorValue
 impl<T> From<T> for Robj
 where
-    T: ToVectorValue,
+    T: ToVectorValue + NonRobj,
 {
     fn from(scalar: T) -> Self {
         Some(scalar).into_iter().collect_robj()
