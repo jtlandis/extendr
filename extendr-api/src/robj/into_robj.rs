@@ -499,46 +499,18 @@ impl ToVectorValue for Option<Rstr> {
     }
 }
 
-impl ToVectorValue for Rstr {
-    fn sexptype() -> SEXPTYPE {
-        SEXPTYPE::STRSXP
-    }
-
-    fn to_sexp(&self) -> SEXP
-    where
-        Self: Sized,
-    {
-        unsafe { self.get() }
+impl From<Rstr> for Robj {
+    /// Make an robj from a wrapper.
+    fn from(val: Rstr) -> Self {
+        val.robj
     }
 }
 
-impl ToVectorValue for &Rstr {
-    fn sexptype() -> SEXPTYPE {
-        SEXPTYPE::STRSXP
-    }
-
-    fn to_sexp(&self) -> SEXP
-    where
-        Self: Sized,
-    {
-        unsafe { self.get() }
-    }
-}
-
-impl ToVectorValue for Option<Rstr> {
-    fn sexptype() -> SEXPTYPE {
-        SEXPTYPE::STRSXP
-    }
-
-    fn to_sexp(&self) -> SEXP
-    where
-        Self: Sized,
-    {
-        if let Some(s) = self {
-            unsafe { s.get() }
-        } else {
-            unsafe { R_NaString }
-        }
+// We can convert a reference to any wrapper to a Robj by cloning the robj pointer
+impl From<&Rstr> for Robj {
+    /// Make an robj from a wrapper.
+    fn from(val: &Rstr) -> Self {
+        val.robj.to_owned()
     }
 }
 
