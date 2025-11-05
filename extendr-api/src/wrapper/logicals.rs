@@ -1,6 +1,6 @@
 use super::scalar::{Rbool, Scalar};
 use super::*;
-use extendr_ffi::{dataptr, R_xlen_t, LOGICAL_GET_REGION, SET_INTEGER_ELT, SEXPTYPE};
+use extendr_ffi::{dataptr, R_xlen_t, LOGICAL, LOGICAL_GET_REGION, SET_INTEGER_ELT, SEXPTYPE};
 use std::iter::FromIterator;
 
 /// An obscure `NA`-aware wrapper for R's logical vectors.
@@ -33,13 +33,39 @@ macros::gen_vector_wrapper_impl!(
     altrep_constructor: make_altlogical_from_iterator,
 );
 
-macros::gen_from_iterator_impl!(
-    vector_type: Logicals,
-    collect_from_type: bool,
-    underlying_type: Rbool,
-    SEXP: LGLSXP,
-    assignment: |dest: &mut Rbool, val : bool| *dest = val.into()
-);
+impl<A> FromIterator<A> for Logicals
+where
+    A: Into<Rbool>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => {
+                let robj = Robj::alloc_vector(SEXPTYPE::LGLSXP, lower);
+                single_threaded(|| unsafe {
+                    let sexp = robj.get();
+                    let ptr = LOGICAL(sexp);
+                    for (i, v) in iter.enumerate() {
+                        *ptr.add(i) = v.inner();
+                    }
+                });
+                Self { robj: robj }
+            }
+            _ => {
+                let values: Vec<Rbool> = iter.collect();
+                let robj = Robj::alloc_vector(SEXPTYPE::LGLSXP, values.len());
+                single_threaded(|| unsafe {
+                    let sexp = robj.get();
+                    let ptr = LOGICAL(sexp);
+                    for (i, v) in values.into_iter().enumerate() {
+                        *ptr.add(i) = v.inner();
+                    }
+                });
+                Self { robj: robj }
+            }
+        }
+    }
+}
 
 impl Logicals {
     /// Get a region of elements from the vector.

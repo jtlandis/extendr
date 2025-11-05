@@ -1,4 +1,5 @@
 use super::*;
+use extendr_ffi::RAW;
 
 /// Wrapper for creating raw (byte) objects.
 ///
@@ -67,6 +68,30 @@ impl From<Option<Raw>> for Robj {
         match value {
             None => nil_value(),
             Some(value) => value.into(),
+        }
+    }
+}
+
+impl<A> FromIterator<A> for Raw
+where
+    A: Into<u8>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => single_threaded(|| unsafe {
+                let robj = Robj::alloc_vector(SEXPTYPE::RAWSXP, lower);
+                let sexp = robj.get();
+                let ptr = RAW(sexp);
+                for (i, v) in iter.enumerate() {
+                    *ptr.add(i) = v.to_raw();
+                }
+                Self { robj }
+            }),
+            _ => {
+                let vec: Vec<u8> = iter.collect();
+                Self::from_iter(vec)
+            }
         }
     }
 }

@@ -130,25 +130,6 @@ macro_rules! gen_vector_wrapper_impl {
                 }
             }
         }
-
-        impl FromIterator<$scalar_type> for $type {
-            /// A more generalised iterator collector for small vectors.
-            /// Generates a non-ALTREP vector.
-            fn from_iter<T: IntoIterator<Item = $scalar_type>>(iter: T) -> Self {
-                // Collect into a vector first.
-                // TODO: specialise for ExactSizeIterator.
-                let values: Vec<$scalar_type> = iter.into_iter().collect();
-
-                let mut robj = Robj::alloc_vector($sexp, values.len());
-                let dest: &mut [$scalar_type] = robj.as_typed_slice_mut().unwrap();
-
-                for (d, v) in dest.iter_mut().zip(values) {
-                    *d = v;
-                }
-
-                $type { robj }
-            }
-        }
     }
 }
 

@@ -1,7 +1,8 @@
 use super::scalar::{Rint, Scalar};
 use super::*;
 use extendr_ffi::{
-    dataptr, R_xlen_t, INTEGER_GET_REGION, INTEGER_IS_SORTED, INTEGER_NO_NA, SET_INTEGER_ELT,
+    dataptr, R_xlen_t, INTEGER, INTEGER_GET_REGION, INTEGER_IS_SORTED, INTEGER_NO_NA,
+    SET_INTEGER_ELT,
 };
 use std::iter::FromIterator;
 
@@ -34,13 +35,31 @@ macros::gen_vector_wrapper_impl!(
     altrep_constructor: make_altinteger_from_iterator,
 );
 
-macros::gen_from_iterator_impl!(
-    vector_type: Integers,
-    collect_from_type: i32,
-    underlying_type: i32,
-    SEXP: INTSXP,
-    assignment: |dest: &mut i32, val: i32| *dest = val
-);
+impl<A> FromIterator<A> for Integers
+where
+    A: Into<Rint>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => {
+                let robj = Robj::alloc_vector(SEXPTYPE::INTSXP, lower);
+                single_threaded(|| unsafe {
+                    let sexp = robj.get();
+                    let ptr = INTEGER(sexp);
+                    for (i, v) in iter.enumerate() {
+                        *ptr.add(i) = v.inner();
+                    }
+                });
+                Self { robj: robj }
+            }
+            _ => {
+                let values: Vec<Rint> = iter.collect();
+                Self::from_iter(values)
+            }
+        }
+    }
+}
 
 impl Integers {
     /// Get a region of elements from the vector.

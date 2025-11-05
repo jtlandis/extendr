@@ -106,6 +106,14 @@ impl From<&str> for Rstr {
     }
 }
 
+impl From<&&str> for Rstr {
+    fn from(s: &&str) -> Self {
+        Rstr {
+            robj: unsafe { Robj::from_sexp(str_to_character(s.as_ref())) },
+        }
+    }
+}
+
 impl From<&Rstr> for &str {
     fn from(value: &Rstr) -> Self {
         unsafe {

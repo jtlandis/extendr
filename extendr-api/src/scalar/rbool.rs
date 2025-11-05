@@ -70,6 +70,12 @@ impl From<bool> for Rbool {
     }
 }
 
+impl From<&bool> for Rbool {
+    fn from(v: &bool) -> Self {
+        Rbool(i32::from(*v))
+    }
+}
+
 impl From<Option<bool>> for Rbool {
     fn from(v: Option<bool>) -> Self {
         if let Some(v) = v {

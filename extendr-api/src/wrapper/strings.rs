@@ -109,19 +109,42 @@ impl Strings {
 
 impl Attributes for Strings {}
 
-impl<T: AsRef<str>> FromIterator<T> for Strings {
-    /// Convert an iterator to a Strings object.
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let iter_collect: Vec<_> = iter.into_iter().collect();
-        let len = iter_collect.len();
+// impl<T: AsRef<str>> FromIterator<T> for Strings {
+//     /// Convert an iterator to a Strings object.
+//     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+//         let iter_collect: Vec<_> = iter.into_iter().collect();
+//         let len = iter_collect.len();
 
-        let mut robj = Strings::alloc_vector(SEXPTYPE::STRSXP, len);
-        crate::single_threaded(|| unsafe {
-            for (i, v) in iter_collect.into_iter().enumerate() {
-                SET_STRING_ELT(robj.get_mut(), i as isize, str_to_character(v.as_ref()));
+//         let mut robj = Strings::alloc_vector(SEXPTYPE::STRSXP, len);
+//         crate::single_threaded(|| unsafe {
+//             for (i, v) in iter_collect.into_iter().enumerate() {
+//                 SET_STRING_ELT(robj.get_mut(), i as isize, str_to_character(v.as_ref()));
+//             }
+//             Strings { robj }
+//         })
+//     }
+// }
+
+impl<A> FromIterator<A> for Strings
+where
+    A: Into<Rstr>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => single_threaded(|| unsafe {
+                let res = Robj::alloc_vector(SEXPTYPE::STRSXP, lower);
+                let sexp = res.get();
+                for (i, v) in iter.enumerate() {
+                    SET_STRING_ELT(sexp, i as isize, v.to_sexp());
+                }
+                Self { robj: res }
+            }),
+            _ => {
+                let iter: Vec<Rstr> = iter.collect();
+                Self::from_iter(iter)
             }
-            Strings { robj }
-        })
+        }
     }
 }
 

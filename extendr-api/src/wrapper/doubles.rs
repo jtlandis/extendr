@@ -1,7 +1,8 @@
 use super::scalar::{Rfloat, Scalar};
 use super::*;
 use extendr_ffi::{
-    dataptr, R_xlen_t, REAL_GET_REGION, REAL_IS_SORTED, REAL_NO_NA, SET_REAL_ELT, SEXPTYPE::REALSXP,
+    dataptr, R_xlen_t, REAL, REAL_GET_REGION, REAL_IS_SORTED, REAL_NO_NA, SET_REAL_ELT,
+    SEXPTYPE::REALSXP,
 };
 use std::iter::FromIterator;
 
@@ -33,13 +34,39 @@ macros::gen_vector_wrapper_impl!(
     altrep_constructor: make_altreal_from_iterator,
 );
 
-macros::gen_from_iterator_impl!(
-    vector_type: Doubles,
-    collect_from_type: f64,
-    underlying_type: f64,
-    SEXP: REALSXP,
-    assignment: |dest: &mut f64, val: f64| *dest = val
-);
+// macros::gen_from_iterator_impl!(
+//     vector_type: Doubles,
+//     collect_from_type: f64,
+//     underlying_type: f64,
+//     SEXP: REALSXP,
+//     assignment: |dest: &mut f64, val: f64| *dest = val
+// );
+
+impl<A> FromIterator<A> for Doubles
+where
+    A: Into<Rfloat>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => {
+                let robj = Robj::alloc_vector(SEXPTYPE::REALSXP, lower);
+                single_threaded(|| unsafe {
+                    let sexp = robj.get();
+                    let ptr = REAL(sexp);
+                    for (i, v) in iter.enumerate() {
+                        *ptr.add(i) = v.inner();
+                    }
+                });
+                Self { robj: robj }
+            }
+            _ => {
+                let values: Vec<Rfloat> = iter.collect();
+                Self::from_iter(values)
+            }
+        }
+    }
+}
 
 impl Doubles {
     /// Get a region of elements from the vector.

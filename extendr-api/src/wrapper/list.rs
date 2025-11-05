@@ -198,6 +198,29 @@ impl List {
     }
 }
 
+impl<A> FromIterator<A> for List
+where
+    A: Into<Robj>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => single_threaded(|| unsafe {
+                let robj = Robj::alloc_vector(SEXPTYPE::VECSXP, lower);
+                let sexp = robj.get();
+                for (i, v) in iter.enumerate() {
+                    SET_VECTOR_ELT(sexp, i as isize, v.get());
+                }
+                Self { robj }
+            }),
+            _ => {
+                let vec: Vec<Robj> = iter.collect();
+                Self::from_iter(vec)
+            }
+        }
+    }
+}
+
 impl<T> TryFrom<&List> for HashMap<&str, T>
 where
     T: TryFrom<Robj, Error = error::Error>,
@@ -422,28 +445,28 @@ impl<T: AsRef<str>> KeyValue for (T, Robj) {
     }
 }
 
-impl<T: Into<Robj>> FromIterator<T> for List {
-    /// Convert an iterator to a `List` object.
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let iter_collect: Vec<_> = iter.into_iter().collect();
-        let len = iter_collect.len();
+// impl<T: Into<Robj>> FromIterator<T> for List {
+//     /// Convert an iterator to a `List` object.
+//     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+//         let iter_collect: Vec<_> = iter.into_iter().collect();
+//         let len = iter_collect.len();
 
-        crate::single_threaded(|| unsafe {
-            let mut robj = Robj::alloc_vector(SEXPTYPE::VECSXP, len);
-            for (i, v) in iter_collect.into_iter().enumerate() {
-                // We don't PROTECT each element here, as they will be immediately
-                // placed into a list which will protect them:
-                // https://cran.r-project.org/doc/manuals/R-exts.html#Garbage-Collection
-                // note: Currently, `Robj` automatically registers `v` by the
-                // `ownership`-module, making it protected, even though it isn't necessary to do so.
-                let item: Robj = v.into();
-                SET_VECTOR_ELT(robj.get_mut(), i as isize, item.get());
-            }
+//         crate::single_threaded(|| unsafe {
+//             let mut robj = Robj::alloc_vector(SEXPTYPE::VECSXP, len);
+//             for (i, v) in iter_collect.into_iter().enumerate() {
+//                 // We don't PROTECT each element here, as they will be immediately
+//                 // placed into a list which will protect them:
+//                 // https://cran.r-project.org/doc/manuals/R-exts.html#Garbage-Collection
+//                 // note: Currently, `Robj` automatically registers `v` by the
+//                 // `ownership`-module, making it protected, even though it isn't necessary to do so.
+//                 let item: Robj = v.into();
+//                 SET_VECTOR_ELT(robj.get_mut(), i as isize, item.get());
+//             }
 
-            List { robj }
-        })
-    }
-}
+//             List { robj }
+//         })
+//     }
+// }
 
 impl Attributes for List {}
 

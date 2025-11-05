@@ -1,5 +1,6 @@
-use super::scalar::{c64, Rcplx};
+use super::scalar::{c64, Rcplx, Scalar};
 use super::*;
+use extendr_ffi::COMPLEX;
 use extendr_ffi::{dataptr, R_xlen_t, Rcomplex, COMPLEX_GET_REGION, SEXPTYPE::CPLXSXP};
 use std::iter::FromIterator;
 
@@ -28,13 +29,39 @@ macros::gen_vector_wrapper_impl!(
     altrep_constructor: make_altcomplex_from_iterator,
 );
 
-macros::gen_from_iterator_impl!(
-    vector_type: Complexes,
-    collect_from_type: c64,
-    underlying_type: Rcplx,
-    SEXP: CPLXSXP,
-    assignment: |dest: &mut Rcplx, val: c64| *dest = val.into()
-);
+// macros::gen_from_iterator_impl!(
+//     vector_type: Complexes,
+//     collect_from_type: c64,
+//     underlying_type: Rcplx,
+//     SEXP: CPLXSXP,
+//     assignment: |dest: &mut Rcplx, val: c64| *dest = val.into()
+// );
+
+impl<A> FromIterator<A> for Complexes
+where
+    A: Into<Rcplx>,
+{
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter().map(|x| x.into());
+        match iter.size_hint() {
+            (lower, Some(upper)) if lower == upper => single_threaded(|| unsafe {
+                let robj = Robj::alloc_vector(SEXPTYPE::CPLXSXP, lower);
+                let ptr = COMPLEX(robj.get());
+                for (i, v) in iter.enumerate() {
+                    *ptr.add(i) = Rcomplex {
+                        r: v.re().inner(),
+                        i: v.im().inner(),
+                    };
+                }
+                Self { robj }
+            }),
+            _ => {
+                let vec: Vec<Rcplx> = iter.collect();
+                Self::from_iter(vec)
+            }
+        }
+    }
+}
 
 impl Complexes {
     /// Get a region of elements from the vector.
