@@ -455,10 +455,14 @@ extern "C" {
     pub fn STRING_ELT(x: SEXP, i: R_xlen_t) -> SEXP;
     pub fn LOGICAL_ELT(x: SEXP, i: R_xlen_t) -> ::std::os::raw::c_int;
     pub fn STRING_PTR_RO(x: SEXP) -> *const SEXP;
+    pub fn STRING_PTR(x: SEXP) -> *mut SEXP;
     pub fn TAG(e: SEXP) -> SEXP;
     pub fn VECTOR_ELT(x: SEXP, i: R_xlen_t) -> SEXP;
     pub fn SETLEVELS(x: SEXP, v: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
     // pub fn Rf_isS4(arg1: SEXP) -> Rboolean;
+    pub fn INCREMENT_REFCNT(x: SEXP);
+    pub fn DECREMENT_REFCNT(x: SEXP);
+    pub fn TRACKREFS(x: SEXP) -> ::std::os::raw::c_int;
 
 }
 
